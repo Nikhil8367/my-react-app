@@ -80,8 +80,6 @@ export default function LiveCodeApp() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [showChatPanel, setShowChatPanel] = useState(false);
 
-  // debug
-  console.log('DEBUG: API_BASE =', API_BASE, 'YWS_URL =', YWS_URL);
 
   // on mount: silent rejoin if stored
   useEffect(() => {

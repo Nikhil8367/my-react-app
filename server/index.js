@@ -683,15 +683,6 @@ app.post('/api/rooms/:roomId/force-delete', requireAuth, async (req, res, next) 
   }
 });
 
-// DEBUG only: inspect room (temporary; remove in production)
-app.get('/api/debug/rooms/:roomId', requireAuth, async (req, res, next) => {
-  try {
-    const room = await Room.findOne({ roomId: req.params.roomId }).populate('members.user', 'username');
-    if (!room) return res.status(404).json({ ok:false, error:'not found' });
-    return res.json({ ok:true, room });
-  } catch (err) { next(err); }
-});
-
 // Basic root for quick testing
 app.get('/', (req, res) => {
   res.json({ ok: true, msg: 'Auth, rooms & socket API running' });
@@ -705,9 +696,9 @@ app.use((err, req, res, next) => {
 });
 
 // -------------------- Start --------------------
-const PORT = process.env.PORT;
+const PORT = process.env.PORT || 5000;
 httpServer.listen(PORT, () => {
-  console.log(`Auth & rooms server (with Socket.IO) listening on http://localhost:${PORT}`);
+  console.log(`Auth & rooms server (with Socket.IO) listening on port ${PORT}`);
   console.log('Run y-websocket separately for Yjs on port 1234 if you use Yjs for doc sync: npx y-websocket --port 1234');
   console.log('If you see "WebSocket is already in CLOSING or CLOSED state" from y-websocket, check that the Yjs websocket server is running and that your client YWS_URL matches it.');
 });
