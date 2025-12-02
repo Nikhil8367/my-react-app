@@ -68,8 +68,8 @@ export default function LiveCodeApp() {
   const editorRef = useRef(null);
   const awarenessRef = useRef(null);
 
-  const API_BASE = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4000';
-  const YWS_URL = import.meta.env.VITE_YWS_URL || 'ws://localhost:1234';
+  const API_BASE = import.meta.env.VITE_BACKEND_URL;
+  const YWS_URL = import.meta.env.VITE_YWS_URL;
 
   // Socket.io
   const socketRef = useRef(null);

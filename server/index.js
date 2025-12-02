@@ -705,7 +705,7 @@ app.use((err, req, res, next) => {
 });
 
 // -------------------- Start --------------------
-const PORT = process.env.PORT || 4000;
+const PORT = process.env.PORT;
 httpServer.listen(PORT, () => {
   console.log(`Auth & rooms server (with Socket.IO) listening on http://localhost:${PORT}`);
   console.log('Run y-websocket separately for Yjs on port 1234 if you use Yjs for doc sync: npx y-websocket --port 1234');

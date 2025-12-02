@@ -4,7 +4,7 @@ import { io } from 'socket.io-client';
 import Sidebar from '../components/Sidebar';
 
 // configure this to point to your backend
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:4000';
+const API_BASE = import.meta.env.VITE_API_BASE;
 
 function apiFetch(path, token, options = {}) {
   const headers = Object.assign({
