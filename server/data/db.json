@@ -1,0 +1,47 @@
+{
+  "users": {
+    "u_0d06e6ac": {
+      "id": "u_0d06e6ac",
+      "username": "Nikhil",
+      "passwordHash": "$2b$10$J5U.OkVKDeY5aLOyZYPLm.1wyBMbXGeiqbSrcSoZrLSfpz5/JZKwS",
+      "token": "af76eb7a1bc73daa86af8435ecf669af746d858364e834d1",
+      "createdAt": 1764600934879
+    },
+    "u_62b49b65": {
+      "id": "u_62b49b65",
+      "username": "NIkhil",
+      "passwordHash": "$2b$10$HOCfrlnFaTkoPeB2E0aUr.T9oAvqp79na0ExnIoaQq5XOuuBxJ7q.",
+      "token": "52dcce9e19cfd3750377e6772aae9f49c3ffdd002d3b13da",
+      "createdAt": 1764602060474
+    }
+  },
+  "rooms": {
+    "room-5c3b89a9": {
+      "id": "room-5c3b89a9",
+      "passwordHash": "$2b$10$/6nFevs6hsns8JSyk1TLguXOBbzeCiIT8OqfH2NAnXrnHxY8gzlum",
+      "ownerId": "u_0d06e6ac",
+      "createdAt": 1764601493404,
+      "meta": {
+        "language": "javascript"
+      }
+    },
+    "room-c7300b9a": {
+      "id": "room-c7300b9a",
+      "passwordHash": "$2b$10$bhO9gEM1gdMaS0ZT0.sL4ulpJHtRSJMpdtE/uhGaJ13oce/qFtKVW",
+      "ownerId": "u_62b49b65",
+      "createdAt": 1764602067892,
+      "meta": {
+        "language": "javascript"
+      }
+    },
+    "room-010c187f": {
+      "id": "room-010c187f",
+      "passwordHash": "$2b$10$ALGqy6/PQ5mHsmOwrjUu..ic/U8jE7BY91nTeqlu3Lyhj/u3wzsbK",
+      "ownerId": "u_62b49b65",
+      "createdAt": 1764602582882,
+      "meta": {
+        "language": "javascript"
+      }
+    }
+  }
+}
