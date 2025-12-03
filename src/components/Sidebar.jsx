@@ -2,13 +2,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 /**
- * Sidebar — combined version:
- * - Centered modal system (used ONLY for: accept, reject, kick, room delete)
- * - Restored Join UI
- * - Socket listeners (approved/rejected/kicked/room_deleted/members_updated)
- * - Owner cannot manage themselves; role-select uses black background
- * - Enhanced styles and UI
- * - MAIN CONTENT is scrollable; FOOTER is fixed (not part of scroll)
+ * Sidebar — full copy-paste ready
+ * - Join UI: inputs stacked (one below the other) and buttons side-by-side beneath them
+ * - Main content scrollable; footer fixed
+ * - Socket listeners and modal system kept from your original file
+ *
+ * Paste this entire file over your existing Sidebar.jsx
  */
 
 export default function Sidebar(props) {
@@ -446,8 +445,18 @@ export default function Sidebar(props) {
         .sc-newroom { display:flex; justify-content:flex-end; }
         .sc-newroom .btn { padding:8px 12px; }
 
-        .sc-join { padding: 10px; border-radius: 10px; background: rgba(255,255,255,0.02); display:flex; gap:8px; align-items:center; }
-        .sc-join .input { padding:8px 10px; border-radius:8px; background: rgba(0,0,0,0.45); color:#fff; border: 1px solid rgba(255,255,255,0.04); }
+        /* JOIN UI — stacked inputs, buttons side-by-side beneath them */
+        .sc-join { padding: 12px; border-radius: 10px; background: rgba(255,255,255,0.02); display:flex; gap:10px; flex-direction: column; align-items: stretch; }
+        .sc-join-label { font-size: 12px; color: #9fb0c7; margin-left: 2px; margin-bottom: 4px; font-weight: 600; }
+        .sc-join-input { padding: 10px 12px; border-radius: 8px; background: rgba(0,0,0,0.45); color:#fff; border: 1px solid rgba(255,255,255,0.04); width:100%; box-sizing:border-box; min-height: 42px; }
+        .sc-join-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
+        .sc-join-actions .btn { min-width: 110px; }
+
+        /* Keep stacked layout even on wide screens to match requested layout */
+        /* If you want horizontal layout on very wide screens, change flex-direction to row here */
+        @media(min-width: 980px) {
+          .sc-join { flex-direction: column; }
+        }
 
         .sc-cred { padding:12px; border-radius:12px; background: linear-gradient(180deg, rgba(11,22,36,0.6), rgba(6,12,20,0.35)); border: 1px solid rgba(255,255,255,0.03); display:flex; flex-direction:column; gap:10px; }
         .sc-cred-pass { font-family: 'Roboto Mono', monospace; font-size:13px; background: rgba(255,255,255,0.02); padding:10px 12px; border-radius:10px; color:#dff1ff; flex:1; }
@@ -516,13 +525,39 @@ export default function Sidebar(props) {
           <button className="btn small" onClick={() => { transientClick('createRoom'); if (typeof createRoom === 'function') createRoom(); else console.warn('[Sidebar] createRoom not provided'); }}>{isConnecting ? 'Creating…' : 'New room'}</button>
         </div>
 
-        {/* Join UI: shown when not in a currentRoom */}
+        {/* Join UI: inputs stacked vertically, buttons side-by-side */}
         {!currentRoom && (
-          <div className="sc-join">
-            <input className="input" placeholder="Room ID" value={roomIdInput || ''} onChange={e => setRoomIdInput && setRoomIdInput(e.target.value)} onKeyDown={handleRoomInputKey} aria-label="Room ID" />
-            <input className="input" placeholder="Room password" value={roomPassInput || ''} onChange={e => setRoomPassInput && setRoomPassInput(e.target.value)} onKeyDown={handleRoomInputKey} aria-label="Room password" />
-            <button className="btn primary small" onClick={onJoinClick} disabled={joining}>{joining ? 'Joining…' : 'Join'}</button>
-            <button className="btn ghost small" onClick={onCopyCreds}>Copy creds</button>
+          <div className="sc-join" role="region" aria-label="Join room">
+            <label className="sc-join-label" htmlFor="lc-room-id">Room ID</label>
+            <input
+              id="lc-room-id"
+              className="input sc-join-input"
+              placeholder="Room ID"
+              value={roomIdInput || ''}
+              onChange={e => setRoomIdInput && setRoomIdInput(e.target.value)}
+              onKeyDown={handleRoomInputKey}
+              aria-label="Room ID"
+            />
+
+            <label className="sc-join-label" htmlFor="lc-room-pass">Room password</label>
+            <input
+              id="lc-room-pass"
+              className="input sc-join-input"
+              placeholder="Room password"
+              value={roomPassInput || ''}
+              onChange={e => setRoomPassInput && setRoomPassInput(e.target.value)}
+              onKeyDown={handleRoomInputKey}
+              aria-label="Room password"
+            />
+
+            <div className="sc-join-actions">
+              <button className="btn primary small" onClick={onJoinClick} disabled={joining}>
+                {joining ? 'Joining…' : 'Join'}
+              </button>
+              <button className="btn ghost small" onClick={onCopyCreds}>
+                {lastClicked === 'copyCreds' ? 'Copied' : 'Copy creds'}
+              </button>
+            </div>
           </div>
         )}
 
