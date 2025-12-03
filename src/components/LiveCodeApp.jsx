@@ -38,7 +38,7 @@ export default function LiveCodeApp() {
   const [language, setLanguage] = useState(localStorage.getItem('lc_language') || 'javascript');
 
   const [status, setStatus] = useState('idle');
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState([]); // presence / awareness users for editor panel
   const [connected, setConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
@@ -66,7 +66,8 @@ export default function LiveCodeApp() {
   const fileProviderRef = useRef(null);
   const bindingRef = useRef(null);
   const editorRef = useRef(null);
-  const awarenessRef = useRef(null);
+  const awarenessRef = useRef(null); // shared awareness (room-meta) when available
+  const fileAwarenessObserverRef = useRef(null); // observer for file provider awareness
 
   const API_BASE = import.meta.env.VITE_BACKEND_URL;
   const YWS_URL = import.meta.env.VITE_YWS_URL;
@@ -398,6 +399,73 @@ export default function LiveCodeApp() {
     } catch (e) { console.warn('destroyRoomMetaProvider err', e); }
   }
 
+  // --- AWARENESS HELPER: observed file provider awareness -> setUsers
+  function attachFileAwarenessObserver(provider) {
+    if (!provider || !provider.awareness) return;
+    const aw = provider.awareness;
+    const observer = () => {
+      try {
+        const states = Array.from(aw.getStates().values() || []);
+        // map to user objects compatible with EditorPanel: { id, name, avatarUrl?, role }
+        const mapped = states.map((s) => {
+          const u = (s && s.user) || {};
+          return {
+            id: u.id || (u.name ? `anon-${u.short || ''}` : uidShort()),
+            name: u.name || (currentUser ? currentUser.username : 'Anonymous'),
+            avatarUrl: u.avatarUrl || null,
+            role: (u.role || 'editor')
+          };
+        });
+        setUsers(mapped);
+      } catch (e) {
+        console.error('file awareness observer err', e);
+      }
+    };
+    // unobserve previous
+    try {
+      if (fileAwarenessObserverRef.current && typeof aw.unobserve === 'function') {
+        aw.unobserve(fileAwarenessObserverRef.current);
+      }
+    } catch (e) {}
+    // observe new
+    try {
+      if (typeof aw.on === 'function') {
+        // some providers expose .on; also keep fallback to observe API
+        aw.on('change', observer);
+        fileAwarenessObserverRef.current = { useOn: true, fn: observer, aw };
+      } else if (typeof aw.observe === 'function') {
+        aw.observe(observer);
+        fileAwarenessObserverRef.current = { useOn: false, fn: observer, aw };
+      } else {
+        fileAwarenessObserverRef.current = null;
+      }
+      // run once immediately to set current users
+      observer();
+    } catch (e) {
+      console.warn('attachFileAwarenessObserver failed', e);
+      fileAwarenessObserverRef.current = null;
+    }
+  }
+
+  function detachFileAwarenessObserver() {
+    try {
+      const info = fileAwarenessObserverRef.current;
+      if (!info) return;
+      const { aw, useOn, fn } = info;
+      if (!aw) return;
+      if (useOn && typeof aw.off === 'function') {
+        aw.off('change', fn);
+      } else if (!useOn && typeof aw.unobserve === 'function') {
+        aw.unobserve(fn);
+      }
+    } catch (e) {
+      console.warn('detachFileAwarenessObserver err', e);
+    } finally {
+      fileAwarenessObserverRef.current = null;
+      setUsers([]); // clear presence when provider destroyed
+    }
+  }
+
   // create file provider for an individual file doc (separate from room-meta)
   async function createFileProvider(roomId, fileId, editable = true) {
     // destroy existing file provider first
@@ -433,6 +501,9 @@ export default function LiveCodeApp() {
       });
     }
 
+    // ATTACH awareness observer to keep `users` updated for EditorPanel
+    attachFileAwarenessObserver(provider);
+
     provider.on('status', (evt) => {
       setStatus('realtime: ' + evt.status + ` • file ${fileId}`);
       setConnected(evt.status === 'connected');
@@ -445,6 +516,8 @@ export default function LiveCodeApp() {
   async function destroyFileProvider() {
     try {
       if (bindingRef.current) { try { bindingRef.current.destroy(); } catch (e) {} bindingRef.current = null; }
+      // detach awareness observer BEFORE provider destroy
+      try { detachFileAwarenessObserver(); } catch (e) {}
       if (fileProviderRef.current) {
         try { fileProviderRef.current.disconnect(); } catch (e) {}
         try { fileProviderRef.current.destroy(); } catch (e) {}
@@ -1052,6 +1125,13 @@ export default function LiveCodeApp() {
           users={users}
           connected={connected}
           API_BASE={API_BASE}
+          currentUser={currentUser}     // so EditorPanel can show owner-only UI
+          isOwner={isOwnerFlag}
+          members={members}
+          role={role}
+          deleteFile={deleteFile}
+          grantFileAccess={grantFileAccess}
+          revokeFileAccess={revokeFileAccess}
           Editor={Editor}
         />
       </div>
