@@ -6,8 +6,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
  * - Join UI: inputs stacked (one below the other) and buttons side-by-side beneath them
  * - Main content scrollable; footer fixed
  * - Socket listeners and modal system kept from your original file
- *
- * Paste this entire file over your existing Sidebar.jsx
  */
 
 export default function Sidebar(props) {
@@ -90,7 +88,10 @@ export default function Sidebar(props) {
   const filesMemo = useMemo(() => (Array.isArray(files) ? files : []), [files]);
   const usersMemo = useMemo(() => (Array.isArray(users) ? users : []), [users]);
   const membersMemo = useMemo(() => (Array.isArray(members) ? members : []), [members]);
-  const pendingList = useMemo(() => Array.isArray(pendingMembers) ? pendingMembers : membersMemo.filter(m => m.role === 'pending'), [pendingMembers, membersMemo]);
+  const pendingList = useMemo(
+    () => Array.isArray(pendingMembers) ? pendingMembers : membersMemo.filter(m => m.role === 'pending'),
+    [pendingMembers, membersMemo]
+  );
 
   // compute current user's role
   const currentUserRole = useMemo(() => {
@@ -244,6 +245,19 @@ export default function Sidebar(props) {
     }
   }, [currentRoom, roomPassInput]);
 
+  // NEW: copy room ID separately
+  const onCopyRoomId = useCallback(async () => {
+    const idToCopy = (currentRoom && currentRoom.id) || roomIdInput || '';
+    if (!idToCopy) return;
+    try {
+      await navigator.clipboard.writeText(idToCopy);
+      transientClick('copyRoomId');
+    } catch (e) {
+      console.error('[Sidebar] copy room id failed', e);
+      transientClick('copyRoomId');
+    }
+  }, [currentRoom, roomIdInput]);
+
   const onToggleShow = useCallback(() => {
     transientClick('toggleShow');
     setShowPass && setShowPass(p => !p);
@@ -363,7 +377,12 @@ export default function Sidebar(props) {
     const canDelete = isOwner || currentUserRole === 'editor';
     return (
       <div className="sc-row file" role="listitem">
-        <div className="sc-file-main" onClick={() => openFile && openFile(f)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openFile && openFile(f); }}>
+        <div
+          className="sc-file-main"
+          onClick={() => openFile && openFile(f)}
+          tabIndex={0}
+          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') openFile && openFile(f); }}
+        >
           <div className="sc-file-thumb">{f.name ? f.name[0]?.toUpperCase() : 'F'}</div>
           <div className="sc-file-meta">
             <div className="sc-file-name">{f.name}</div>
@@ -371,13 +390,19 @@ export default function Sidebar(props) {
           </div>
         </div>
         <div className="sc-file-actions">
-          <button className="btn ghost small" disabled={!canDelete} onClick={async (e) => {
-            e.stopPropagation();
-            if (!canDelete) { return; }
-            const ok = await showConfirm('Delete file', `Delete ${f.name}? This action cannot be undone.`);
-            if (!ok) return;
-            if (typeof deleteFile === 'function') deleteFile(f.fileId);
-          }}>{'Delete'}</button>
+          <button
+            className="btn ghost small"
+            disabled={!canDelete}
+            onClick={async (e) => {
+              e.stopPropagation();
+              if (!canDelete) { return; }
+              const ok = await showConfirm('Delete file', `Delete ${f.name}? This action cannot be undone.`);
+              if (!ok) return;
+              if (typeof deleteFile === 'function') deleteFile(f.fileId);
+            }}
+          >
+            {'Delete'}
+          </button>
         </div>
       </div>
     );
@@ -406,7 +431,12 @@ export default function Sidebar(props) {
               </>
             ) : (
               <>
-                <select className="role-select" defaultValue={m.role} onChange={(e) => onChangeRole(m.id, e.target.value)} aria-label={`Change role for ${m.username || m.name}`}>
+                <select
+                  className="role-select"
+                  defaultValue={m.role}
+                  onChange={(e) => onChangeRole(m.id, e.target.value)}
+                  aria-label={`Change role for ${m.username || m.name}`}
+                >
                   <option value="member">member</option>
                   <option value="editor">editor</option>
                   <option value="viewer">viewer</option>
@@ -442,7 +472,11 @@ export default function Sidebar(props) {
         .status-dot.online { background: #7ee787; }
         .status-dot.offline { background: #ff7b7b; }
 
-        .sc-newroom { display:flex; justify-content:flex-end; }
+        /* TOP quick actions: copy ID / pass / creds */
+        .sc-top-actions { margin-top: 12px; display:flex; flex-wrap:wrap; gap:8px; justify-content:flex-end; }
+        .sc-top-actions .btn.small { padding:5px 10px; font-size:11px; }
+
+        .sc-newroom { display:flex; justify-content:flex-end; margin-top: 8px; }
         .sc-newroom .btn { padding:8px 12px; }
 
         /* JOIN UI — stacked inputs, buttons side-by-side beneath them */
@@ -452,24 +486,35 @@ export default function Sidebar(props) {
         .sc-join-actions { display:flex; gap:8px; justify-content:flex-end; margin-top:6px; }
         .sc-join-actions .btn { min-width: 110px; }
 
-        /* Keep stacked layout even on wide screens to match requested layout */
-        /* If you want horizontal layout on very wide screens, change flex-direction to row here */
         @media(min-width: 980px) {
           .sc-join { flex-direction: column; }
         }
 
         .sc-cred { padding:12px; border-radius:12px; background: linear-gradient(180deg, rgba(11,22,36,0.6), rgba(6,12,20,0.35)); border: 1px solid rgba(255,255,255,0.03); display:flex; flex-direction:column; gap:10px; }
+        .sc-cred-header { display:flex; justify-content:space-between; align-items:center; }
+        .sc-cred-header-left { display:flex; flex-direction:column; gap:2px; }
+        .sc-cred-title { font-size:13px; font-weight:700; color:#e3f4ff; }
+        .sc-cred-caption { font-size:11px; color:#9fb0c7; }
+        .sc-cred-status { font-size:12px; color:#9fb0c7; }
+
+        .sc-cred-block { margin-top: 4px; display:flex; flex-direction:column; gap:4px; }
+        .sc-cred-label { font-size:11px; color:#9fb0c7; text-transform:uppercase; letter-spacing:0.04em; }
+        .sc-cred-line { display:flex; align-items:center; gap:8px; }
+        .sc-cred-value { font-family: 'Roboto Mono', monospace; font-size:13px; background: rgba(255,255,255,0.02); padding:8px 10px; border-radius:10px; color:#dff1ff; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
         .sc-cred-pass { font-family: 'Roboto Mono', monospace; font-size:13px; background: rgba(255,255,255,0.02); padding:10px 12px; border-radius:10px; color:#dff1ff; flex:1; }
-        .sc-actions { display:flex; gap:8px; flex-wrap:wrap; }
-        .btn { padding:8px 12px; border-radius:10px; background: linear-gradient(180deg,#1f6f6f 0%, #1b8ea3 100%); color:#fff; border:none; cursor:pointer; font-weight:700; transition: transform .08s ease, box-shadow .12s ease; }
+        .sc-cred-buttons { display:flex; gap:6px; }
+
+        .sc-actions { display:flex; gap:8px; flex-wrap:wrap; margin-top:6px; }
+        .btn { padding:8px 12px; border-radius:10px; background: linear-gradient(180deg,#1f6f6f 0%, #1b8ea3 100%); color:#fff; border:none; cursor:pointer; font-weight:700; transition: transform .08s ease, box-shadow .12s ease, opacity .08s ease; font-size:13px; }
         .btn:hover { transform: translateY(-2px); box-shadow: 0 8px 28px rgba(32,140,200,0.12); }
+        .btn:disabled { opacity:0.55; cursor:not-allowed; box-shadow:none; transform:none; }
         .btn.ghost { background:transparent; border:1px solid rgba(255,255,255,0.04); color:#cfe8ff; }
-        .btn.small { padding:6px 10px; font-size:13px; }
+        .btn.small { padding:6px 10px; font-size:12px; }
         .btn.primary { background:linear-gradient(90deg,#6fc8ff 0%,#6aa4ff 100%); }
 
         .sc-files { display:flex; flex-direction:column; gap:12px; padding-right:6px; }
         .section-head { display:flex; justify-content:space-between; align-items:center; }
-        .sc-add { display:flex; gap:8px; }
+        .sc-add { display:flex; gap:8px; margin-top:6px; }
         .sc-input { padding:10px 12px; border-radius:10px; background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.03); color:#dff3ff; flex:1; }
 
         .sc-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px; border-radius:12px; transition: background .12s ease, transform .08s ease; }
@@ -498,8 +543,17 @@ export default function Sidebar(props) {
 
         /* Footer area: keep visible and not scrollable */
         .sc-footer { padding: 12px 20px; border-top: 1px dashed rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; gap:12px; background: linear-gradient(180deg, rgba(6,14,24,0.96), rgba(4,9,16,0.98)); }
+        .sc-footer-tip { font-size:11px; color:#7b92a9; max-width:160px; }
 
-        @media (max-width: 900px) { .sc-side { width: 84px; } .sc-title { display:none; } .sc-main { padding: 12px; } .sc-footer { padding: 10px 12px; } }
+        @media (max-width: 900px) {
+          .sc-side { width: 84px; }
+          .sc-title { display:none; }
+          .sc-sub { display:none; }
+          .sc-main { padding: 12px; }
+          .sc-top-actions { display:none; }
+          .sc-footer { padding: 10px 12px; }
+          .sc-footer-tip { display:none; }
+        }
       `}</style>
 
       {/* MAIN scrollable area */}
@@ -520,9 +574,19 @@ export default function Sidebar(props) {
           </div>
         </div>
 
+
         {/* New room above cred */}
         <div className="sc-newroom">
-          <button className="btn small" onClick={() => { transientClick('createRoom'); if (typeof createRoom === 'function') createRoom(); else console.warn('[Sidebar] createRoom not provided'); }}>{isConnecting ? 'Creating…' : 'New room'}</button>
+          <button
+            className="btn small"
+            onClick={() => {
+              transientClick('createRoom');
+              if (typeof createRoom === 'function') createRoom();
+              else console.warn('[Sidebar] createRoom not provided');
+            }}
+          >
+            {isConnecting ? 'Creating…' : 'New room'}
+          </button>
         </div>
 
         {/* Join UI: inputs stacked vertically, buttons side-by-side */}
@@ -532,7 +596,7 @@ export default function Sidebar(props) {
             <input
               id="lc-room-id"
               className="input sc-join-input"
-              placeholder="Room ID"
+              placeholder="Enter room ID"
               value={roomIdInput || ''}
               onChange={e => setRoomIdInput && setRoomIdInput(e.target.value)}
               onKeyDown={handleRoomInputKey}
@@ -543,7 +607,7 @@ export default function Sidebar(props) {
             <input
               id="lc-room-pass"
               className="input sc-join-input"
-              placeholder="Room password"
+              placeholder="Enter room password"
               value={roomPassInput || ''}
               onChange={e => setRoomPassInput && setRoomPassInput(e.target.value)}
               onKeyDown={handleRoomInputKey}
@@ -561,17 +625,57 @@ export default function Sidebar(props) {
           </div>
         )}
 
-        {/* credentials card */}
+        {/* Room info / credentials card */}
         <div className="sc-cred">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="muted small">Room password</div>
-            <div className="muted small">{currentRoom ? 'Connected' : 'Not connected'}</div>
+          <div className="sc-cred-header">
+            <div className="sc-cred-header-left">
+              <span className="sc-cred-title">Room info</span>
+              <span className="sc-cred-caption">Share only with trusted collaborators</span>
+            </div>
+            <div className="sc-cred-status">
+              {currentRoom ? 'Connected to room' : 'Not connected'}
+            </div>
           </div>
 
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <div className="sc-cred-pass">{showPass && currentRoom?.pass ? currentRoom.pass : (currentRoom?.pass ? '••••••••' : (roomPassInput || '—'))}</div>
-            <button className="btn small" onClick={onCopyPass}>{lastClicked === 'copyPass' ? 'Copied' : 'Copy'}</button>
-            <button className="btn ghost small" onClick={onToggleShow}>{showPass ? 'Hide' : 'Show'}</button>
+          {/* Room ID block */}
+          <div className="sc-cred-block">
+            <div className="sc-cred-label">Room ID</div>
+            <div className="sc-cred-line">
+              <div className="sc-cred-value">
+                {currentRoom?.id || roomIdInput || '—'}
+              </div>
+              <div className="sc-cred-buttons">
+                <button
+                  className="btn ghost small"
+                  onClick={onCopyRoomId}
+                  disabled={!roomIdInput && !(currentRoom && currentRoom.id)}
+                >
+                  {lastClicked === 'copyRoomId' ? 'Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Room password block */}
+          <div className="sc-cred-block">
+            <div className="sc-cred-label">Room password</div>
+            <div className="sc-cred-line">
+              <div className="sc-cred-pass">
+                {showPass && currentRoom?.pass
+                  ? currentRoom.pass
+                  : (currentRoom?.pass
+                      ? '••••••••'
+                      : (roomPassInput || '—'))}
+              </div>
+              <div className="sc-cred-buttons">
+                <button className="btn small" onClick={onCopyPass} disabled={!((currentRoom && currentRoom.pass) || roomPassInput)}>
+                  {lastClicked === 'copyPass' ? 'Copied' : 'Copy'}
+                </button>
+                <button className="btn ghost small" onClick={onToggleShow}>
+                  {showPass ? 'Hide' : 'Show'}
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="sc-actions">
@@ -589,19 +693,35 @@ export default function Sidebar(props) {
           </div>
 
           <div className="sc-add">
-            <input className="sc-input" placeholder={localPending ? 'Waiting for approval...' : 'New file name'} value={newFileName} onChange={e => setNewFileName(e.target.value)} disabled={localPending} onKeyDown={handleNewFileKey} />
-            <button className="btn primary small" onClick={onCreateClick} disabled={localPending}>{lastClicked === 'create' ? 'Creating…' : 'Create'}</button>
+            <input
+              className="sc-input"
+              placeholder={localPending ? 'Waiting for approval...' : 'New file name'}
+              value={newFileName}
+              onChange={e => setNewFileName(e.target.value)}
+              disabled={localPending}
+              onKeyDown={handleNewFileKey}
+            />
+            <button className="btn primary small" onClick={onCreateClick} disabled={localPending}>
+              {lastClicked === 'create' ? 'Creating…' : 'Create'}
+            </button>
           </div>
 
           <div role="list">
-            {filesMemo.length === 0 ? <div className="muted small">No files yet</div> : filesMemo.map(f => <FileRow key={f.fileId} f={f} />)}
+            {filesMemo.length === 0 ? (
+              <div className="muted small">No files yet</div>
+            ) : (
+              filesMemo.map(f => <FileRow key={f.fileId} f={f} />)
+            )}
           </div>
 
           <div style={{ marginTop: 6, borderTop: '1px dashed rgba(255,255,255,0.02)', paddingTop: 10 }}>
             <div style={{ fontWeight: 900, marginBottom: 8 }}>Members <span className="muted small">{membersMemo.length}</span></div>
-
             <div>
-              {membersMemo.length === 0 ? <div className="muted small">No members</div> : membersMemo.map(m => <MemberRow key={m.id} m={m} />)}
+              {membersMemo.length === 0 ? (
+                <div className="muted small">No members</div>
+              ) : (
+                membersMemo.map(m => <MemberRow key={m.id} m={m} />)
+              )}
             </div>
           </div>
         </div>
@@ -613,12 +733,17 @@ export default function Sidebar(props) {
           <div style={{ width: 48 }}><Avatar name={displayName} size={48} status={connected} /></div>
           <div>
             <div style={{ fontWeight: 900 }}>{displayName}</div>
-            <div className="muted small">Realtime: <strong style={{ color: connected ? '#7ee787' : '#ffb4b4' }}>{connected ? 'Connected' : 'Disconnected'}</strong></div>
+            <div className="muted small">
+              Realtime:{' '}
+              <strong style={{ color: connected ? '#7ee787' : '#ffb4b4' }}>
+                {connected ? 'Connected' : 'Disconnected'}
+              </strong>
+            </div>
           </div>
         </div>
 
-        <div>
-          <button className="btn ghost small" onClick={onCopyCreds}>Copy creds</button>
+        <div className="sc-footer-tip">
+          Tip: keep your room ID & password private while you’re live coding.
         </div>
       </div>
 
